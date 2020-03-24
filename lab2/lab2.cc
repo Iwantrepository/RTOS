@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <string>
+#include <limits.h>
+#include <bitset>
 
 #define STR_LEN 100
 
@@ -9,11 +12,17 @@ using namespace std;
 
 struct data{
 
-	int X0;
-	int a;
-	int c;
-	int m;
-	int N;
+	unsigned int X0;
+	unsigned int a;
+	unsigned int c;
+	unsigned int m;
+	unsigned int N;
+};
+
+struct bar_data{
+	char key[256];
+	char text[256];
+	char res[256];
 };
 
 
@@ -79,70 +88,83 @@ int main( int argc, char* argv[] )
 {
 	cout << "Prog start" << endl;
 	int c, errflag = 0;
-	char buff[STR_LEN];
-	FILE *fp;
+	char buff_k[STR_LEN];
+	char buff_i[STR_LEN];
+	string s_k, s_i, s_o;
+
+	int text_len;
+
+	FILE *fp_k, *fp_i, *fp_o;
 	    while( ( c = getopt( argc, argv, "k:i:o:" ) )
 	      != -1 ) {
 	      switch( c ) {
 	        case 'k': printf( "otp -> %s\n", optarg );
-							fp = fopen(optarg, "rb");
-							if(!fp)
-								break;
+							fp_k = fopen(optarg, "rb");
+							if(!fp_k)
+								return 0;
 
-							fgets(buff, STR_LEN, fp);
-							printf("%s", buff);
-							fclose(fp);
+							fgets(buff_k, STR_LEN, fp_k);
+							printf("%s", buff_k);
 							break;
 	        case 'i': printf( "input -> %s\n", optarg );
-	        				fp = fopen(optarg, "rb");
-	        	        	if(!fp)
-	        	        		break;
+	        				fp_i = fopen(optarg, "rb");
+	        	        	if(!fp_i)
+	        	        		return 0;
 
-	        	        	fgets(buff, STR_LEN, fp);
-	        	        	printf("%s", buff);
-	        	        	fclose(fp);
+	        	        	fgets(buff_i, STR_LEN, fp_i);
+	        	        	text_len = strlen(buff_i);
+	        	        	buff_i[text_len-1] = '\0';
+	        	        	printf("%s - (%d)\n", buff_i, text_len);
+	        	        	fclose(fp_i);
 	        	        	break;
 	        case 'o': printf( "output -> %s\n", optarg );
-	        				fp = fopen(optarg, "rb");
-	        	        	if(!fp)
-	        	        		break;
-
-	        	        	fgets(buff, STR_LEN, fp);
-	        	        	printf("%s", buff);
-	        	        	fclose(fp);
+	        				fp_o = fopen(optarg, "rb");
+	        	        	if(!fp_o)
+	        	        		return 0;
 	        	        	break;
 	        case '?': ++errflag;
 	                  break;
 	      }
 	    }
 
+	    data dt;
+
+	    dt.X0 = 1;
+	    dt.a = 1664525;
+	    dt.c = 1013904223;
+	    dt.m = INT_MAX;
+	    dt.N = text_len*8;
+
+
+	    LKG lkg(dt);
+	    int* res = lkg.start_thread();
+
+	    for(int i=0; i<dt.N; i++)
+	    	cout << res[i]%2 << "";
+	    cout << endl;
+
+
+
 	int numCPU = sysconf(_SC_NPROCESSORS_ONLN);
 	    cout << "Num of CPUs " << numCPU << endl;
 
-	pthread_barrier_t * barrier;
-	int bar_start = pthread_barrier_init(barrier, NULL, numCPU);
-	cout << "bar_start" << bar_start << endl;
-	bar_start = pthread_barrier_destroy(barrier);
-	cout << "bar_start" << bar_start << endl;
+	numCPU = 1;
+
+	static pthread_barrier_t barrier;
+	int status = pthread_barrier_init(&barrier, NULL, numCPU);
+	cout << "Bar init " << status << endl;
+
+	bar_data bdt;
+
+	status = pthread_barrier_wait(&barrier);
+	cout << "Bar wait " << status << endl;
+	status = pthread_barrier_destroy(&barrier);
+	cout << "Bar destroy " << status << endl;
 
 
-	data dt;
+	cout << "Prog finish " << /*bitset<8>*/(char)(('a'^'x')^'x') << endl;
 
-	dt.X0 = 7;
-	dt.a = 7;
-	dt.c = 7;
-	dt.m = 10;
-	dt.N = 15;
-
-
-	LKG lkg(dt);
-	int* res = lkg.start_thread();
-
-	for(int i=0; i<dt.N; i++)
-		cout << res[i] << " ";
-	cout << endl;
-
-
-	cout << "Prog finish";
+	fclose(fp_k);
+	fclose(fp_o);
 	return 0;
 }
