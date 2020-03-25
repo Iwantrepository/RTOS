@@ -23,6 +23,7 @@ struct bar_data{
 	char key[256];
 	char text[256];
 	char res[256];
+	pthread_barrier_t * bar;
 };
 
 
@@ -83,6 +84,24 @@ private:
 
 };
 
+void* xoring (void* arg)
+{
+	bar_data * b = (bar_data*)arg;
+	int term;
+	for(int i = 0; b->text[i] != '\0'; i++)
+	{
+		b->res[i] = (b->text[i])^(b->key[i]);
+		//cout << b->res[i];
+		term = i;
+	}
+	b->res[term+1] = '\0';
+	//cout << endl;
+
+	//pthread_barrier_wait(b->bar);
+
+	return NULL;
+}
+
 
 int main( int argc, char* argv[] )
 {
@@ -133,26 +152,61 @@ int main( int argc, char* argv[] )
 	    dt.a = 1664525;
 	    dt.c = 1013904223;
 	    dt.m = INT_MAX;
-	    dt.N = text_len*8;
+	    dt.N = text_len;
 
 
 	    LKG lkg(dt);
 	    int* res = lkg.start_thread();
 
 	    for(int i=0; i<dt.N; i++)
-	    	cout << res[i]%2 << "";
+	    {
+	    	cout << (char)(res[i]%256) << " ";
+	    	buff_k[i] = (char)(res[i]%256);
+	    }
+	    buff_k[dt.N] = '\0';
 	    cout << endl;
 
 
 
 	int numCPU = sysconf(_SC_NPROCESSORS_ONLN);
 	    cout << "Num of CPUs " << numCPU << endl;
+numCPU = 5;
 
-	numCPU = 1;
 
-	static pthread_barrier_t barrier;
-	int status = pthread_barrier_init(&barrier, NULL, numCPU);
-	cout << "Bar init " << status << endl;
+	pthread_t * threads;
+	threads = new pthread_t[numCPU];
+	bar_data * args;
+	args = new bar_data[numCPU];
+
+	pthread_barrier_t barrier;
+	int status = pthread_barrier_init(&barrier, NULL, numCPU+1);
+	cout << "Bar init " << ((status == 0)?"Yes":"No") << endl;
+
+	int sym_lim = (text_len / numCPU) + 1;
+
+	for(int i = 0; i < numCPU; i++)
+	{
+		args->bar = &barrier;
+		for(int j = 0; (j < sym_lim)&&(buff_i[i*sym_lim + j] != '\0') ; j++)
+		{
+			args[i].text[j] = buff_i[i*sym_lim + j];
+			args[i].key[j] = buff_k[i*sym_lim + j];
+		}
+	}
+
+	for(int i = 0; i < numCPU; i++)
+	{
+		status = pthread_create(&threads[i], NULL, xoring, (void*) &args[i]);
+		cout << "Pthread [" << i <<"] init - " << ((status == 0)?"Yes":"No") << endl;
+	}
+
+	for(int i = 0; i < numCPU; i++)
+		{
+			for(int j = 0; (j < sym_lim)&&(args[i].res[j] != '\0') ; j++)
+			{
+				cout << args[i].res[j];
+			}
+		}
 
 	bar_data bdt;
 
@@ -162,7 +216,7 @@ int main( int argc, char* argv[] )
 	cout << "Bar destroy " << status << endl;
 
 
-	cout << "Prog finish " << /*bitset<8>*/(char)(('a'^'x')^'x') << endl;
+	cout << "Prog finish " << bitset<8>(('a'^'x')^'x') << endl;
 
 	fclose(fp_k);
 	fclose(fp_o);
