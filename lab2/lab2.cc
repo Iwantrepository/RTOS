@@ -66,7 +66,7 @@ public:
 		int buf;
 		buf = pthread_join(tid, &per);
 
-		cout << "pthread_join returned: " << buf << endl;
+		//cout << "pthread_join returned: " << buf << endl;
 
 		sum = (int*)per;
 
@@ -93,7 +93,7 @@ void* xoring (void* arg)
 	for(int i = 0; b->text[i] != '\0'; i++)
 	{
 		b->res[i] = (b->text[i])^(b->key[i]);
-		//cout << b->res[i];
+		//cout << b->text[i];
 		term = i;
 	}
 	b->res[term+1] = '\0';
@@ -121,17 +121,17 @@ int main( int argc, char* argv[] )
 	    while( ( c = getopt( argc, argv, "k:i:o:" ) )
 	      != -1 ) {
 	      switch( c ) {
-	        case 'k': printf( "otp -> %s\n", optarg );
+	        case 'k': //printf( "otp -> %s\n", optarg );
 							fp_k = fopen(optarg, "rb");
 							if(!fp_k)
 								return 0;
 
 							fgets(buff_k, STR_LEN, fp_k);
-							printf("%s", buff_k);
+							//printf("%s", buff_k);
 							fclose(fp_k);
 							fp_k = fopen(optarg, "wb");
 							break;
-	        case 'i': printf( "input -> %s\n", optarg );
+	        case 'i': //printf( "input -> %s\n", optarg );
 	        				fp_i = fopen(optarg, "rb");
 	        	        	if(!fp_i)
 	        	        		return 0;
@@ -139,10 +139,10 @@ int main( int argc, char* argv[] )
 	        	        	fgets(buff_i, STR_LEN, fp_i);
 	        	        	text_len = strlen(buff_i);
 	        	        	buff_i[text_len-1] = '\0';
-	        	        	printf("%s - (%d)\n", buff_i, text_len);
+	        	        	//printf("%s - (%d)\n", buff_i, text_len);
 	        	        	fclose(fp_i);
 	        	        	break;
-	        case 'o': printf( "output -> %s\n", optarg );
+	        case 'o': //printf( "output -> %s\n", optarg );
 	        				fp_o = fopen(optarg, "wb");
 	        	        	if(!fp_o)
 	        	        		return 0;
@@ -166,11 +166,11 @@ int main( int argc, char* argv[] )
 
 	    for(int i=0; i<dt.N; i++)
 	    {
-	    	cout << (int)(res[i]%256) << " ";
+	    	//cout << (int)(res[i]%256) << " ";
 	    	buff_k[i] = (char)(res[i]%256);
 	    }
 	    buff_k[dt.N] = '\0';
-	    cout << endl;
+	    //cout << endl;
 
 
 
@@ -201,7 +201,7 @@ int main( int argc, char* argv[] )
 	for(int i = 0; i < numCPU; i++)
 	{
 		status = pthread_create(&threads[i], NULL, xoring, (void*) &args[i]);
-		cout << "Pthread [" << i <<"] init - " << ((status == 0)?"Yes":"No") << endl;
+		//cout << "Pthread [" << i <<"] init - " << ((status == 0)?"Yes":"No") << endl;
 	}
 
 	status = pthread_barrier_wait(&barrier);
@@ -235,6 +235,6 @@ int main( int argc, char* argv[] )
 	fclose(fp_k);
 	fclose(fp_o);
 
-	cout << "Prog finish " << bitset<8>(('a'^'x')^'x') << endl;
+	cout << "Prog finish";
 	return 0;
 }
