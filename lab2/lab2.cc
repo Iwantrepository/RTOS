@@ -5,10 +5,13 @@
 #include <string>
 #include <limits.h>
 #include <bitset>
+#include <time.h>
 
 #define STR_LEN 100
 
 using namespace std;
+
+pthread_barrier_t barrier;
 
 struct data{
 
@@ -23,7 +26,6 @@ struct bar_data{
 	char key[256];
 	char text[256];
 	char res[256];
-	pthread_barrier_t * bar;
 };
 
 
@@ -97,7 +99,9 @@ void* xoring (void* arg)
 	b->res[term+1] = '\0';
 	//cout << endl;
 
-	//pthread_barrier_wait(b->bar);
+	//sleep(1);
+
+	pthread_barrier_wait(&barrier);
 
 	return NULL;
 }
@@ -109,7 +113,7 @@ int main( int argc, char* argv[] )
 	int c, errflag = 0;
 	char buff_k[STR_LEN];
 	char buff_i[STR_LEN];
-	string s_k, s_i, s_o;
+	char s_k[256], s_i[256], s_o[256];
 
 	int text_len;
 
@@ -124,6 +128,8 @@ int main( int argc, char* argv[] )
 
 							fgets(buff_k, STR_LEN, fp_k);
 							printf("%s", buff_k);
+							fclose(fp_k);
+							fp_k = fopen(optarg, "wb");
 							break;
 	        case 'i': printf( "input -> %s\n", optarg );
 	        				fp_i = fopen(optarg, "rb");
@@ -137,7 +143,7 @@ int main( int argc, char* argv[] )
 	        	        	fclose(fp_i);
 	        	        	break;
 	        case 'o': printf( "output -> %s\n", optarg );
-	        				fp_o = fopen(optarg, "rb");
+	        				fp_o = fopen(optarg, "wb");
 	        	        	if(!fp_o)
 	        	        		return 0;
 	        	        	break;
@@ -160,7 +166,7 @@ int main( int argc, char* argv[] )
 
 	    for(int i=0; i<dt.N; i++)
 	    {
-	    	cout << (char)(res[i]%256) << " ";
+	    	cout << (int)(res[i]%256) << " ";
 	    	buff_k[i] = (char)(res[i]%256);
 	    }
 	    buff_k[dt.N] = '\0';
@@ -170,7 +176,7 @@ int main( int argc, char* argv[] )
 
 	int numCPU = sysconf(_SC_NPROCESSORS_ONLN);
 	    cout << "Num of CPUs " << numCPU << endl;
-numCPU = 5;
+//numCPU = 5;
 
 
 	pthread_t * threads;
@@ -178,7 +184,6 @@ numCPU = 5;
 	bar_data * args;
 	args = new bar_data[numCPU];
 
-	pthread_barrier_t barrier;
 	int status = pthread_barrier_init(&barrier, NULL, numCPU+1);
 	cout << "Bar init " << ((status == 0)?"Yes":"No") << endl;
 
@@ -186,7 +191,6 @@ numCPU = 5;
 
 	for(int i = 0; i < numCPU; i++)
 	{
-		args->bar = &barrier;
 		for(int j = 0; (j < sym_lim)&&(buff_i[i*sym_lim + j] != '\0') ; j++)
 		{
 			args[i].text[j] = buff_i[i*sym_lim + j];
@@ -200,25 +204,37 @@ numCPU = 5;
 		cout << "Pthread [" << i <<"] init - " << ((status == 0)?"Yes":"No") << endl;
 	}
 
+	status = pthread_barrier_wait(&barrier);
+	cout << "Main bar wait - " << ((status == 0)?"Yes":"No") << endl;
+
+	for (int i=0; i < numCPU; i++) {
+	    pthread_join(threads[i], NULL);
+	}
+
+
 	for(int i = 0; i < numCPU; i++)
 		{
 			for(int j = 0; (j < sym_lim)&&(args[i].res[j] != '\0') ; j++)
 			{
 				cout << args[i].res[j];
+				s_o[i*sym_lim + j] = args[i].res[j];
+				s_o[i*sym_lim + j+1] = '\0';
 			}
 		}
+	cout << endl;
 
 	bar_data bdt;
 
-	status = pthread_barrier_wait(&barrier);
-	cout << "Bar wait " << status << endl;
 	status = pthread_barrier_destroy(&barrier);
-	cout << "Bar destroy " << status << endl;
+	cout << "Bar destroy - " << ((status == 0)?"Yes":"No") << endl;
 
 
-	cout << "Prog finish " << bitset<8>(('a'^'x')^'x') << endl;
+	fprintf(fp_k, "%s", buff_k);
+	fprintf(fp_o, "%s", s_o);
 
 	fclose(fp_k);
 	fclose(fp_o);
+
+	cout << "Prog finish " << bitset<8>(('a'^'x')^'x') << endl;
 	return 0;
 }
