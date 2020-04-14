@@ -90,7 +90,7 @@ int main()
 	for(int i=0; i<dt.N; i++)
 		cout << res[i] << " ";
 	cout << endl;
-
+ 	delete []res;
 
 	cout << "Prog finish";
 	return 0;
